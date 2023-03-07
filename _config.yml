@@ -11,7 +11,7 @@ url: https://tools.hainansec.com
 baseurl: ""
 
 # 使用的 Jekyll 主题
-theme: jekyll-theme-cayman
+theme: jekyll-theme-shell
 
 # 用于设置访问网站时使用的语言
 lang: en-US
@@ -19,6 +19,8 @@ lang: en-US
 # 用于配置插件
 plugins:
   - jekyll-seo-tag
+  - jekyll-paginate
+  - jekyll-sitemap
 
 # 用于指定需要拷贝的文件
 include_files:
