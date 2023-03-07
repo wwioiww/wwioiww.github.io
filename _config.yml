@@ -1,3 +1,40 @@
+# 网站基本设置
+title: Geeks Only
+description: A collection of tools and resources for geeks
+url: https://tools.hainansec.com
+baseurl: ""
+
+# Jekyll 主题设置
 theme: jekyll-theme-cayman
-title: Tools
-description: 
+
+# 用于设置访问网站时使用的语言
+lang: en-US
+
+# 用于指定时区
+timezone: America/New_York
+
+# 插件设置
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# Markdown 设置
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+# 网站导航
+nav:
+  - title: Home
+    url: /
+
+# 社交媒体链接
+social:
+  - title: GitHub
+    url: https://github.com/your-username
+  - title: Twitter
+    url: https://twitter.com/your-handle
+
+# 配置 Google Analytics
+google_analytics: UA-12345678-1
