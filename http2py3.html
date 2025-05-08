@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>HTTP 请求转 Python3 httpx</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #f5f5f5; }
+    textarea, input { width: 100%; margin-bottom: 10px; padding: 6px; font-family: monospace; }
+    textarea { height: 180px; }
+    pre { background: #eee; padding: 10px; white-space: pre-wrap; }
+    button { margin-right: 10px; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+  <h2>HTTP 请求转 Python3 httpx</h2>
+
+  <label>HTTP 请求原文：</label>
+  <textarea id="httpInput" placeholder="粘贴 HTTP 请求包"></textarea>
+
+  <label>代理地址（可选）：</label>
+  <input type="text" id="proxyInput" placeholder="http://127.0.0.1:8080" value="http://127.0.0.1:8080">
+
+  <label>排除 Headers（如 User-Agent,Cookie）：</label>
+  <input type="text" id="excludeHeaders" placeholder="User-Agent,Cookie">
+
+  <label>导出文件名（不加后缀 .py）：</label>
+  <input type="text" id="filenameInput" placeholder="converted_request">
+
+  <button onclick="convert()">转换为 Python3 httpx</button>
+  <button onclick="copyCode()">复制代码</button>
+  <button onclick="download()">导出为 .py 文件</button>
+  <button onclick="insertSample()">粘贴示例</button>
+
+  <h3>生成的 Python3 代码：</h3>
+  <pre id="output"></pre>
+
+  <script>
+    let lastResult = "";
+
+    function convert() {
+      const input = document.getElementById('httpInput').value.trim();
+      const proxy = document.getElementById('proxyInput').value.trim();
+      const filename = document.getElementById('filenameInput').value.trim() || "converted_request";
+      const excludeList = document.getElementById('excludeHeaders').value
+        .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+
+      const lines = input.split('\n');
+      if (!lines.length) return;
+
+      const [method, path] = lines[0].split(' ');
+      let url = '';
+      const headers = {};
+      let cookies = '';
+      let body = '';
+      let inBody = false;
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+        if (line === '') {
+          inBody = true;
+          continue;
+        }
+        if (inBody) {
+          body += line + '\n';
+          continue;
+        }
+        if (line.toLowerCase().startsWith('host:')) {
+          const host = line.split(':')[1].trim();
+          const protocol = input.toLowerCase().includes('https') ? 'https://' : 'http://';
+          url = protocol + host + path;
+        } else if (line.toLowerCase().startsWith('cookie:')) {
+          cookies = line.slice(7).trim();
+        } else if (line.includes(':')) {
+          const idx = line.indexOf(':');
+          const key = line.slice(0, idx).trim();
+          const val = line.slice(idx + 1).trim();
+          if (!excludeList.includes(key.toLowerCase())) {
+            headers[key] = val;
+          }
+        }
+      }
+
+      const headersStr = Object.entries(headers).map(
+        ([k, v]) => `    '${k}': '${v}'`
+      ).join(',\n');
+
+      const cookiesStr = cookies && !excludeList.includes('cookie') ?
+        `cookies = {${cookies.split('; ').map(kv => {
+          const [k, v] = kv.split('=');
+          return `'${k}': '${v}'`;
+        }).join(', ')}}` : '';
+
+      let bodyBlock = '';
+      let bodyParam = '';
+      const contentTypeHeader = Object.keys(headers).find(h => h.toLowerCase() === 'content-type');
+      const contentTypeVal = contentTypeHeader ? headers[contentTypeHeader] : '';
+
+      if (method.toUpperCase() === 'POST' && body.trim()) {
+        if (contentTypeVal.includes('application/json')) {
+          try {
+            const jsonObj = JSON.parse(body.trim());
+            bodyBlock = 'json_data = ' + JSON.stringify(jsonObj, null, 4) + '\n';
+            bodyParam = 'json=json_data';
+          } catch {
+            bodyBlock = `# ⚠️ JSON 解析失败，请手动检查\njson_data = """${body.trim()}"""\n`;
+            bodyParam = 'json=json_data';
+          }
+        } else if (contentTypeVal.includes('application/x-www-form-urlencoded')) {
+          bodyBlock = `data = '''${body.trim()}'''\n`;
+          bodyParam = 'data=data';
+        } else if (contentTypeVal.includes('multipart/form-data')) {
+          const boundaryMatch = contentTypeVal.match(/boundary=([^;]+)/);
+          const boundary = boundaryMatch ? boundaryMatch[1] : '----WebKitFormBoundary';
+          bodyBlock = `# ⚠️ multipart/form-data 内容建议使用 files={} 和 data={} 手动填充\n` +
+                      `multipart_body = """${body.trim()}"""\n`;
+          bodyParam = 'data=multipart_body';
+        } else {
+          bodyBlock = `data = """${body.trim()}"""\n`;
+          bodyParam = 'data=data';
+        }
+      }
+
+      const args = ['url'];
+      if (headersStr) args.push('headers=headers');
+      if (cookiesStr) args.push('cookies=cookies');
+      if (bodyParam) args.push(bodyParam);
+      if (proxy) args.push('proxies=proxies');
+      args.push('verify=False');
+
+      const result = `import httpx
+
+url = "${url}"
+${headersStr ? `headers = {\n${headersStr}\n}` : ''}
+${cookiesStr}
+proxies={"http://": "${proxy}", "https://": "${proxy}"}
+${bodyBlock}rsp = httpx.${method.toLowerCase()}(${args.join(', ')})
+`;
+
+
+      document.getElementById('output').textContent = result;
+      lastResult = result;
+      lastResultFilename = filename;
+    }
+
+    function copyCode() {
+      if (!lastResult) {
+        alert("请先生成代码");
+        return;
+      }
+      navigator.clipboard.writeText(lastResult).then(() => {
+        alert("代码已复制到剪贴板");
+      });
+    }
+
+    function download() {
+      if (!lastResult) {
+        alert("请先生成 Python 代码");
+        return;
+      }
+      const filename = (document.getElementById('filenameInput').value.trim() || "converted_request") + ".py";
+      const blob = new Blob([lastResult], { type: 'text/x-python' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+    }
+
+    function insertSample() {
+      const sample = `POST /upload HTTP/1.1
+Host: example.com
+User-Agent: Mozilla/5.0
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary123456789
+Cookie: session=abcdef123456
+
+------WebKitFormBoundary123456789
+Content-Disposition: form-data; name="file"; filename="test.txt"
+Content-Type: text/plain
+
+hello world
+------WebKitFormBoundary123456789--`;
+      document.getElementById('httpInput').value = sample;
+    }
+  </script>
+</body>
+</html>
