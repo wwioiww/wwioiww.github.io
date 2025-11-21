@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>在线文本差异对比工具</title>
+  <!-- 引入 jsdiff 库，用于计算差异 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg-color: #f3f4f6;
+      --card-bg: #ffffff;
+      --text-main: #1f2937;
+      --text-sub: #6b7280;
+      --border-color: #e5e7eb;
+      --diff-add-bg: #dcfce7; /* 浅绿背景 */
+      --diff-add-text: #166534; /* 深绿文字 */
+      --diff-del-bg: #fee2e2; /* 浅红背景 */
+      --diff-del-text: #991b1b; /* 深红文字 */
+      --code-font: 'Menlo', 'Monaco', 'Consolas', 'Courier New', monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: var(--card-bg);
+      width: 100%;
+      max-width: 1200px; /* 比上一个宽一点，方便对比 */
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+    }
+
+    h2 {
+      margin-top: 0;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 15px;
+      margin-bottom: 20px;
+      font-size: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* 输入区域布局 */
+    .input-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .input-grid { grid-template-columns: 1fr; }
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    textarea {
+      width: 100%;
+      height: 200px;
+      padding: 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-family: var(--code-font);
+      font-size: 0.85rem;
+      background: #f9fafb;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    textarea:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      background: #fff;
+    }
+
+    /* 按钮区域 */
+    .action-bar {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 25px;
+      align-items: center;
+      background: #f8fafc;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    button {
+      cursor: pointer;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+
+    button.primary {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    button.primary:hover {
+      background-color: var(--primary-hover);
+      box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+    }
+
+    button.secondary {
+      background-color: white;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+    button.secondary:hover {
+      background-color: #e5e7eb;
+    }
+
+    .radio-group {
+      display: flex;
+      gap: 15px;
+      margin-left: auto; /* 推到右边 */
+      font-size: 0.9rem;
+    }
+    
+    .radio-group label {
+      margin-bottom: 0;
+      font-weight: normal;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* 差异显示区域 */
+    #diffOutput {
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background: #fff;
+      overflow-x: auto;
+      font-family: var(--code-font);
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    /* 表格布局用于代码对比 */
+    .diff-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .diff-table td {
+      padding: 0;
+      vertical-align: top;
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
+    
+    /* 行号列 */
+    .line-num {
+      width: 40px;
+      text-align: right;
+      padding: 2px 8px;
+      color: #9ca3af;
+      user-select: none;
+      background: #f9fafb;
+      border-right: 1px solid #eee;
+      font-size: 0.75rem;
+    }
+
+    /* 内容列 */
+    .line-code {
+      padding: 2px 8px;
+      position: relative;
+    }
+
+    /* 颜色定义 */
+    .diff-row.added .line-code { background-color: var(--diff-add-bg); color: var(--diff-add-text); }
+    .diff-row.removed .line-code { background-color: var(--diff-del-bg); color: var(--diff-del-text); }
+    .diff-row.unchanged .line-code { color: var(--text-sub); }
+
+    /* 并排模式下的空占位符 */
+    .empty-placeholder {
+      background-color: #f3f4f6;
+      background-image: linear-gradient(45deg, #e5e7eb 25%, transparent 25%, transparent 75%, #e5e7eb 75%, #e5e7eb),
+      linear-gradient(45deg, #e5e7eb 25%, transparent 25%, transparent 75%, #e5e7eb 75%, #e5e7eb);
+      background-size: 10px 10px;
+      background-position: 0 0, 5px 5px;
+      opacity: 0.5;
+    }
+
+    .empty-msg {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-sub);
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>文本/代码差异对比</h2>
+
+  <div class="input-grid">
+    <div>
+      <label for="original">原始内容 (Left)</label>
+      <textarea id="original" placeholder="粘贴旧版本的代码或文本..."></textarea>
+    </div>
+    <div>
+      <label for="modified">新内容 (Right)</label>
+      <textarea id="modified" placeholder="粘贴新版本的代码或文本..."></textarea>
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <button onclick="compare()" class="primary">开始对比</button>
+    <button onclick="clearAll()" class="secondary">清空内容</button>
+    <button onclick="loadSample()" class="secondary">加载示例</button>
+
+    <div class="radio-group">
+      <label><input type="radio" name="viewType" value="side" checked onchange="compare()"> 并排视图</label>
+      <label><input type="radio" name="viewType" value="inline" onchange="compare()"> 行内视图</label>
+    </div>
+  </div>
+
+  <div id="diffOutput">
+    <div class="empty-msg">点击“开始对比”查看结果</div>
+  </div>
+</div>
+
+<script>
+  function compare() {
+    const oldText = document.getElementById('original').value;
+    const newText = document.getElementById('modified').value;
+    const viewType = document.querySelector('input[name="viewType"]:checked').value;
+    const output = document.getElementById('diffOutput');
+
+    if (!oldText && !newText) {
+        output.innerHTML = '<div class="empty-msg">请输入内容后点击对比</div>';
+        return;
+    }
+
+    // 使用 jsdiff 库计算差异 (按行)
+    const diffs = Diff.diffLines(oldText, newText);
+
+    let html = '';
+    
+    if (viewType === 'side') {
+      html = renderSideBySide(diffs);
+    } else {
+      html = renderInline(diffs);
+    }
+
+    output.innerHTML = html;
+  }
+
+  function renderInline(diffs) {
+    let html = '<table class="diff-table">';
+    let lineNumOld = 1;
+    let lineNumNew = 1;
+
+    diffs.forEach(part => {
+      const colorClass = part.added ? 'added' : part.removed ? 'removed' : 'unchanged';
+      const lines = part.value.replace(/\n$/, '').split('\n'); // 去除末尾换行
+
+      lines.forEach(line => {
+        html += `<tr class="diff-row ${colorClass}">`;
+        
+        // 行号逻辑
+        if (part.removed) {
+          html += `<td class="line-num">${lineNumOld++}</td><td class="line-num"></td>`;
+        } else if (part.added) {
+          html += `<td class="line-num"></td><td class="line-num">${lineNumNew++}</td>`;
+        } else {
+          html += `<td class="line-num">${lineNumOld++}</td><td class="line-num">${lineNumNew++}</td>`;
+        }
+        
+        html += `<td class="line-code">${escapeHtml(line)}</td></tr>`;
+      });
+    });
+    html += '</table>';
+    return html;
+  }
+
+  function renderSideBySide(diffs) {
+    let html = '<table class="diff-table">';
+    // 我们需要手动构建左右两列。
+    // diffLines 返回的是片段，我们需要把它们“对齐”。
+    // 这是一个简单的对齐算法：
+    // 1. 如果是 Unchanged，左右直接显示。
+    // 2. 如果是 Removed，显示在左边，右边填空。
+    // 3. 如果是 Added，显示在右边，左边填空。
+    // 注意：这种简单的逻辑不会智能识别“修改”，而是视为“删+增”。
+
+    let leftRows = [];
+    let rightRows = [];
+    let leftLine = 1;
+    let rightLine = 1;
+
+    diffs.forEach(part => {
+      const lines = part.value.replace(/\n$/, '').split('\n');
+      
+      if (part.removed) {
+        lines.forEach(line => {
+          leftRows.push({ type: 'removed', text: line, num: leftLine++ });
+          // 对应的右侧位置暂存为 null，稍后填充或挤压
+          rightRows.push({ type: 'empty' }); 
+        });
+      } else if (part.added) {
+        // 如果刚才左侧添加了 removed，我们尝试把 added 放在对应位置（看起来像修改）
+        // 否则就是单纯的新增
+        // 简单起见，这里逻辑是：如果上一步是 remove，这一步是 add，就填充到 rightRows 刚才的 empty 坑里
+        // 但这需要复杂的双指针，这里使用简化逻辑：
+        // 每次 add 都往里推。
+        // 为了对齐，我们需要检查最近是否有 empty 槽位。
+        
+        let placed = false;
+        // 回溯查找最近的 empty 且还没有被填过的
+        // 这里的简化逻辑是：Add 总是新行，除非我们手动做 diff 块的合并。
+        // 简单实现：Add 就往右加，左边补空。但为了视觉上“修改”在一起，
+        // 我们可以简单地让 Removed 和 Added 块分别生成，然后渲染时如果索引相同就并排。
+        
+        lines.forEach(line => {
+           // 查找右侧是否有待填充的 empty (由 remove 产生)
+           // 这里简化处理：不做复杂的对齐优化，直接线性堆叠
+           // 为了效果更好，通常 diff 库会把 removed 和 added 紧挨着输出
+        });
+      }
+    });
+    
+    // 重新实现一个更直观的 Side-by-Side 渲染循环
+    // 我们不预先生成数组，而是遍历 diffs
+    // 但是 diffs 是线性的。我们需要把 remove 和 add 组合起来看。
+    
+    let rows = []; 
+    // 结构: { left: {text, class, num}, right: {text, class, num} }
+
+    for (let i = 0; i < diffs.length; i++) {
+      const part = diffs[i];
+      const lines = part.value.replace(/\n$/, '').split('\n');
+      
+      if (part.unchanged) {
+        lines.forEach(l => {
+          rows.push({
+            left: { text: l, class: 'unchanged', num: leftLine++ },
+            right: { text: l, class: 'unchanged', num: rightLine++ }
+          });
+        });
+      } else if (part.removed) {
+        // 这是一个删除块。看看下一个块是不是添加块？
+        const nextPart = diffs[i+1];
+        if (nextPart && nextPart.added) {
+          // 这是一个“修改”操作（先删后增）
+          const nextLines = nextPart.value.replace(/\n$/, '').split('\n');
+          const maxLen = Math.max(lines.length, nextLines.length);
+          
+          for (let j = 0; j < maxLen; j++) {
+            const leftContent = lines[j] !== undefined ? lines[j] : null;
+            const rightContent = nextLines[j] !== undefined ? nextLines[j] : null;
+            
+            rows.push({
+              left: leftContent !== null ? { text: leftContent, class: 'removed', num: leftLine++ } : { type: 'empty' },
+              right: rightContent !== null ? { text: rightContent, class: 'added', num: rightLine++ } : { type: 'empty' }
+            });
+          }
+          i++; // 跳过下一个 added 块，因为已经处理了
+        } else {
+          // 单纯的删除
+          lines.forEach(l => {
+            rows.push({
+              left: { text: l, class: 'removed', num: leftLine++ },
+              right: { type: 'empty' }
+            });
+          });
+        }
+      } else if (part.added) {
+        // 单纯的添加（前面不是删除）
+        lines.forEach(l => {
+          rows.push({
+            left: { type: 'empty' },
+            right: { text: l, class: 'added', num: rightLine++ }
+          });
+        });
+      }
+    }
+
+    // 生成 HTML
+    rows.forEach(row => {
+      html += '<tr>';
+      
+      // Left Side
+      if (row.left.type === 'empty') {
+        html += `<td class="line-num"></td><td class="line-code empty-placeholder"></td>`;
+      } else {
+        html += `<td class="line-num">${row.left.num}</td><td class="line-code diff-row ${row.left.class}">${escapeHtml(row.left.text)}</td>`;
+      }
+
+      // Right Side
+      if (row.right.type === 'empty') {
+        html += `<td class="line-num"></td><td class="line-code empty-placeholder"></td>`;
+      } else {
+        html += `<td class="line-num">${row.right.num}</td><td class="line-code diff-row ${row.right.class}">${escapeHtml(row.right.text)}</td>`;
+      }
+      
+      html += '</tr>';
+    });
+
+    html += '</table>';
+    return html;
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function clearAll() {
+    document.getElementById('original').value = '';
+    document.getElementById('modified').value = '';
+    document.getElementById('diffOutput').innerHTML = '<div class="empty-msg">内容已清空</div>';
+  }
+
+  function loadSample() {
+    document.getElementById('original').value = `def hello_world():
+    print("Hello world")
+    return True
+
+def calculate(a, b):
+    return a + b`;
+    
+    document.getElementById('modified').value = `def hello_world():
+    print("Hello Python 3") # Modified string
+    # return True  <-- Removed line
+
+def calculate(a, b):
+    result = a + b  # Added variable
+    return result`;
+    
+    compare();
+  }
+</script>
+</body>
+</html>
