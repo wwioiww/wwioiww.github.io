@@ -1,6 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的工具箱</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            --card-bg: rgba(255, 255, 255, 0.8);
+            --text-main: #333;
+            --text-sub: #666;
+        }
 
-<a href="https://tools.hainansec.com/cyber">加解密</a>
-<a href="https://gchq.github.io/CyberChef/">加解密-官方</a>
-<a href="https://av.aabyss.cn/">杀软识别</a>
-<a href="https://ping.chinaz.com/">多地PING</a>
-<a href="https://tools.hainansec.com/http2py3.html">http2python</a>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .wrapper {
+            width: 90%;
+            max-width: 600px;
+            padding: 40px 0;
+        }
+
+        h2 {
+            text-align: left;
+            margin-bottom: 20px;
+            color: var(--text-main);
+            font-weight: 800;
+            font-size: 1.8rem;
+            padding-left: 10px;
+            border-left: 5px solid #007AFF;
+        }
+
+        .link-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .link-item {
+            display: flex;
+            align-items: center;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px); /* 磨砂效果 */
+            padding: 20px;
+            border-radius: 16px;
+            text-decoration: none;
+            color: var(--text-main);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+
+        .link-item:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+
+        .icon-box {
+            width: 50px;
+            height: 50px;
+            background: #ecf0f1;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 20px;
+            font-size: 1.5rem;
+        }
+
+        /* 为每个图标设置不同的颜色 */
+        .link-item:nth-child(1) .icon-box { color: #FF9F43; background: #fff5e6; }
+        .link-item:nth-child(2) .icon-box { color: #54a0ff; background: #e6f2ff; }
+        .link-item:nth-child(3) .icon-box { color: #ff6b6b; background: #ffe6e6; }
+        .link-item:nth-child(4) .icon-box { color: #1dd1a1; background: #e6fffa; }
+        .link-item:nth-child(5) .icon-box { color: #5f27cd; background: #f0e6ff; }
+
+        .content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .title {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .desc {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            margin-top: 4px;
+        }
+        
+        .arrow {
+            margin-left: auto;
+            color: #ccc;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="wrapper">
+        <h2>快捷工具</h2>
+        
+        <div class="link-list">
+            <a href="https://tools.hainansec.com/cyber" target="_blank" class="link-item">
+                <div class="icon-box"><i class="fa-solid fa-unlock-keyhole"></i></div>
+                <div class="content">
+                    <span class="title">在线加解密</span>
+                    <span class="desc">HainanSec Tools</span>
+                </div>
+                <i class="fa-solid fa-chevron-right arrow"></i>
+            </a>
+
+            <a href="https://gchq.github.io/CyberChef/" target="_blank" class="link-item">
+                <div class="icon-box"><i class="fa-solid fa-blender"></i></div>
+                <div class="content">
+                    <span class="title">CyberChef</span>
+                    <span class="desc">瑞士军刀 - 官方版</span>
+                </div>
+                <i class="fa-solid fa-chevron-right arrow"></i>
+            </a>
+
+            <a href="https://av.aabyss.cn/" target="_blank" class="link-item">
+                <div class="icon-box"><i class="fa-solid fa-bug"></i></div>
+                <div class="content">
+                    <span class="title">杀软识别</span>
+                    <span class="desc">AV Process Identification</span>
+                </div>
+                <i class="fa-solid fa-chevron-right arrow"></i>
+            </a>
+
+            <a href="https://ping.chinaz.com/" target="_blank" class="link-item">
+                <div class="icon-box"><i class="fa-solid fa-earth-asia"></i></div>
+                <div class="content">
+                    <span class="title">多地 PING</span>
+                    <span class="desc">站长之家测速</span>
+                </div>
+                <i class="fa-solid fa-chevron-right arrow"></i>
+            </a>
+
+            <a href="https://tools.hainansec.com/http2py3.html" target="_blank" class="link-item">
+                <div class="icon-box"><i class="fa-solid fa-code"></i></div>
+                <div class="content">
+                    <span class="title">HTTP 转 Python</span>
+                    <span class="desc">Request 请求快速转换代码</span>
+                </div>
+                <i class="fa-solid fa-chevron-right arrow"></i>
+            </a>
+        </div>
+    </div>
+
+</body>
+</html>
